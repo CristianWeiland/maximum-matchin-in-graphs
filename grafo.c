@@ -49,7 +49,7 @@ struct vertice {
 	char* nome;
 	lista saida, entrada;
     int *rotulo;
-    int estado, atributo;
+    int estado, atributo, na_arvore;
 };
 
 //------------------------------------------------------------------------------
@@ -922,9 +922,74 @@ int ordem_perfeita_eliminacao(lista l, grafo g) {
     return 1;
 }
 
+aresta aresta_na_fronteira(grafo g, vertice *u, vertice *w) {
+    no elem_vertice, elem_aresta;
+    vertice v;
+    aresta a;
+
+    for(elem_vertice = primeiro_no(g->v); elem_vertice; elem_vertice = proximo_no(elem_vertice)) {
+        v = (vertice) conteudo(elem_vertice);
+
+        if(v->saida->na_arvore == 1) {
+            deve_estar = 0; // Esse vertice (de saida) ta fora da arvore. O outro vertice (de chegada) deve estar dentro da arvore.
+        } else {
+            deve_estar = 1; // Esse vertice (de saida) ta fora da arvore. O outro vertice (de chegada) deve estar dentro da arvore.
+        }
+
+        for(elem_aresta = primeiro_no(v->saida); elem_aresta; elem_aresta = proximo_no(elem_aresta)) {
+            a = (aresta) conteudo(elem_aresta);
+            if(a->vc->na_arvore == deve_estar) { // Aresta de fronteira.
+                if(v->saida->na_arvore) {
+                    *u = a->vs; // a->vs é o vértice que está dentro da árvore.
+                    *w = a->vc;
+                } else {
+                    *u = a->vc; // a->vc é o vértice que está dentro da árvore.
+                    *w = a->vs;
+                }
+                return a;
+            }
+        }
+    }
+    *u = NULL;
+    return NULL;
+}
+
 lista caminhoAumentante(grafo G, grafo M, vertice v) {
+    int i, j;
     lista l = constroi_lista();
-    return l;
+    no elem;
+    vertice u, w;
+    aresta a;
+
+    /*
+    T<-({v},0)
+    Enquanto fronteiraG(E(T)) != 0
+        {u,w} aresta em fronteiraG(E(T)) com uEV(T)
+        Acrescente o vértice w e a aresta {u,w} a T
+        Se w não está coberto por M
+            Devolva vTw
+        Acrescente a T a aresta de M que cobre w
+    Devolve o caminho vazio
+    */
+
+    for(elem = primeiro_no(g->v); elem; elem = proximo_no(elem)) {
+        u = (vertice) conteudo(elem);
+        u->na_arvore = 0;
+    }
+
+    v->na_arvore = 1;
+
+    a = aresta_na_fronteira(G, &u, &w);
+    while(a) { // Se 'a' nao for NULL, 'a' eh uma aresta da fronteira.
+        w->na_arvore = 1;
+        insere_lista((void *) a, l);
+        if(w->estado != VERM) { // Não está coberto por M.
+            return 1;
+        }
+        a = aresta_na_fronteira(G, &u, &w);
+    }
+
+    return 0;
 }
 
 grafo emparelhamento_maximo(grafo g) {
@@ -947,7 +1012,13 @@ grafo emparelhamento_maximo(grafo g) {
         if(v->atributo != BRAN) {
             P = caminhoAumentante(g, M, v);
             if(primeiro_no(P)) {
-                M = M xor E(P); // isso obviamente não funciona.
+                //M = M xor E(P); // isso obviamente não funciona.
+                //M <- uniao(M, E(P)) - intersecao(M, E(P));
+                /*
+                Sei que um vertice v está em M se v->atributo == VERM, sei que v está em P se v->estado == VERM.
+                Portanto, como XOR simboliza os elementos que estão em M e não estão em P ou os elementos que estão em P
+                mas que não estão em M, 
+                */
             }
         }
     }
