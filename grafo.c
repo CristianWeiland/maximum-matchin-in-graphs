@@ -1,15 +1,9 @@
-/*
-
-LEMBRAR QUE, PRA GRAFOS NAO DIRECIONADOS, SE EU QUERO ACHAR UMA ARESTA, EU TENHO QUE PERCORRER TANTO A LISTA DE ENTRADA QUANTO A DE SAIDA!!!!!!!!
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
 #include <graphviz/cgraph.h>
 #include "grafo.h"
-#include "lista.h"
 
 //------------------------------------------------------------------------------
 // Definições extras:
@@ -22,6 +16,27 @@ LEMBRAR QUE, PRA GRAFOS NAO DIRECIONADOS, SE EU QUERO ACHAR UMA ARESTA, EU TENHO
 #define VERM 1
 #define AZUL 2
 #define FDR -1 // Fim de Rotulo
+
+// Esses defines já existem em cgraph.h
+// #define FALSE 0
+// #define TRUE !FALSE
+
+
+//---------------------------------------------------------------------------
+// nó de lista encadeada cujo conteúdo é um void *
+struct no {
+  void *conteudo;
+  no proximo;
+};
+
+//---------------------------------------------------------------------------
+// lista encadeada
+
+struct lista {  
+  unsigned int tamanho;
+  int padding; // só pra evitar warning 
+  no primeiro;
+};
 
 //------------------------------------------------------------------------------
 // Estruturas Auxiliares Criadas:
@@ -49,7 +64,7 @@ struct vertice {
 	char* nome;
 	lista saida, entrada;
     int *rotulo;
-    int estado, atributo, na_arvore;
+    int estado, atributo, coberto, visitado, na_arvore, padding;
 };
 
 //------------------------------------------------------------------------------
@@ -64,6 +79,7 @@ typedef struct aresta *aresta;
 struct aresta {
 	vertice vs, vc;
 	long int peso;
+    int coberta, padding;
 };
 
 //------------------------------------------------------------------------------
@@ -197,13 +213,164 @@ no v_rotulo_maximo(lista l);
 // o resultado na lista ordem.
 lista busca_largura_lexicografica_vertice(grafo g, vertice r, lista ordem);
 
+
+int aresta_coberta(aresta a);
+void copia_vertices(grafo g1, grafo g2);
+void copia_arestas_cobertas(grafo g1, grafo g2);
+aresta aresta_na_fronteira(grafo g, vertice *u, vertice *w);
+void xor(lista l);
+int busca_caminho(vertice v, lista l, int last);
+lista caminho_aumentante(grafo g);
+
 //------------------------------------------------------------------------------
 // Descobre o caminho aumentante.
-lista caminhoAumentante(grafo G, grafo M, vertice v) {
+lista caminhoAumentante(grafo G, grafo M, vertice v);
 
 //------------------------------------------------------------------------------
 // Implementação das Funções:
 //------------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------
+// Funções do Lista.c
+
+//---------------------------------------------------------------------------
+// devolve o número de nós da lista l
+
+unsigned int tamanho_lista(lista l) { return l->tamanho; }
+
+// Imprime uma lista
+void imprime_lista(lista l,void imprime_elemento(void *));
+
+void imprime_lista(lista l,void imprime_elemento(void *)) {
+    no elem;
+    for(elem = l->primeiro; elem; elem = elem->proximo) {
+        imprime_elemento(elem->conteudo);
+    }
+    return ;
+}
+
+//---------------------------------------------------------------------------
+// devolve o primeiro nó da lista l,
+//      ou NULL, se l é vazia
+
+no primeiro_no(lista l) { return l->primeiro; }
+
+//---------------------------------------------------------------------------
+// devolve o conteúdo do nó n
+//      ou NULL se n = NULL 
+
+void *conteudo(no n) { return n->conteudo; }
+
+//---------------------------------------------------------------------------
+// devolve o sucessor do nó n,
+//      ou NULL, se n for o último nó da lista
+
+no proximo_no(no n) { return n->proximo; }
+
+//---------------------------------------------------------------------------
+// cria uma lista vazia e a devolve
+//
+// devolve NULL em caso de falha
+
+lista constroi_lista(void) {
+
+  lista l = malloc(sizeof(struct lista));
+
+  if ( ! l ) 
+    return NULL;
+
+  l->primeiro = NULL;
+  l->tamanho = 0;
+
+  return l;
+}
+//---------------------------------------------------------------------------
+// desaloca a lista l e todos os seus nós
+// 
+// se destroi != NULL invoca
+//
+//     destroi(conteudo(n)) 
+//
+// para cada nó n da lista. 
+//
+// devolve 1 em caso de sucesso,
+//      ou 0 em caso de falha
+
+int destroi_lista(lista l, int destroi(void *)) {
+
+  no p;
+  int ok=1;
+
+  while ( (p = primeiro_no(l)) ) {
+
+    l->primeiro = proximo_no(p);
+
+    if ( destroi )
+      ok &= destroi(conteudo(p));
+
+    free(p);
+  }
+
+  free(l);
+
+  return ok;
+}
+//---------------------------------------------------------------------------
+// insere um novo nó na lista l cujo conteúdo é p
+//
+// devolve o no recém-criado 
+//      ou NULL em caso de falha
+
+no insere_lista(void *conteudo, lista l) { 
+
+  no novo = malloc(sizeof(struct no));
+
+  if ( ! novo ) 
+    return NULL;
+
+  novo->conteudo = conteudo;
+  novo->proximo = primeiro_no(l);
+  ++l->tamanho;
+  
+  return l->primeiro = novo;
+}
+
+//------------------------------------------------------------------------------
+//
+
+int remove_no(struct lista *l, struct no *rno, int destroi(void *)) {
+    int r = 1;
+    if (l->primeiro == rno) {
+        l->primeiro = rno->proximo;
+        if (destroi != NULL) {
+            r = destroi(conteudo(rno));
+        }
+        free(rno);
+        l->tamanho--;
+        return r;
+    }
+    for (no n = primeiro_no(l); n->proximo; n = proximo_no(n)) {
+        if (n->proximo == rno) {
+            n->proximo = rno->proximo;
+            if (destroi != NULL) {
+                r = destroi(conteudo(rno));
+            }
+            free(rno);
+            l->tamanho--;
+            return r;
+        }
+    }
+    return 0;
+}
+
+
+
+
+
+
+
+//------------------------------------------------------------------------------
+// Funções que não são mais do lista.c
 
 int na_lista(lista l, void* content) {
     no elem;
@@ -922,14 +1089,68 @@ int ordem_perfeita_eliminacao(lista l, grafo g) {
     return 1;
 }
 
+inline int aresta_coberta(aresta a) {
+    return a->coberta;
+}
+
+void copia_vertices(grafo g1, grafo g2) {
+    /* Versão criando vértices novos (pois devo mudar a lista de vizinhança dele).
+       Copia os vértices e arestas de g2 para g1 (g1 é um grafo vazio no início) */
+    no elem;
+
+    for(elem = primeiro_no(g2->v); elem; elem = proximo_no(elem)) {
+        // Cria um novo vertice.
+        insere_vertice(g1, ((vertice) conteudo(elem))->nome );
+    }
+}
+
+void copia_arestas_cobertas(grafo g1, grafo g2) {
+// N sei se funciona
+    /* Copia arestas de g2 cobertas pelo emparalhamento para g1. */
+    no elem_v, elem_a;
+    vertice v, v_saida, v_chegada;
+    aresta a;
+
+    for(elem_v = primeiro_no(g2->v); elem_v; elem_v = proximo_no(elem_v)) {
+        v = (vertice) conteudo(elem_v);
+        v_saida = procura_vertice(g1, v->nome);
+        for(elem_a = primeiro_no(v->saida); elem_a; elem_a = proximo_no(elem_a)) {
+            a = (aresta) conteudo(elem_a);
+            if(aresta_coberta(a)) {
+                v_chegada = procura_vertice(g1, a->vc->nome);
+                insere_aresta(v_saida, v_chegada, a->peso);
+            }
+        }
+    }
+}
+
+void xor(lista l) {
+/* Usando l como lista de arestas */
+    aresta a;
+    no elem;
+
+    for(elem = primeiro_no(l); elem; elem = proximo_no(elem)) {
+        a = (aresta) conteudo(elem);
+        a->coberta = !a->coberta;
+    }
+}
+
 aresta aresta_na_fronteira(grafo g, vertice *u, vertice *w) {
+/*
+Percorre todos os vértices do grafo. Pra cada vértice v, vê se ele tá dentro da árvore.
+Se ele estiver, percorre a vizinhança de saída dele (só a de saída pra garantir que
+não vou percorrer duas vezes a mesma aresta). Para cada aresta a pertencente á lista de
+vizinhança de saída de v, tenho um vértice u tal que {u,v} E A(G). Eu sei que v pertence
+à árvore, então preciso que u não pertença. Se u não pertencer, a faz parte da fronteira.
+Então retorna essa aresta.
+*/
     no elem_vertice, elem_aresta;
     vertice v;
     aresta a;
 
     for(elem_vertice = primeiro_no(g->v); elem_vertice; elem_vertice = proximo_no(elem_vertice)) {
         v = (vertice) conteudo(elem_vertice);
-
+/*
         if(v->saida->na_arvore == 1) {
             deve_estar = 0; // Esse vertice (de saida) ta fora da arvore. O outro vertice (de chegada) deve estar dentro da arvore.
         } else {
@@ -952,14 +1173,35 @@ aresta aresta_na_fronteira(grafo g, vertice *u, vertice *w) {
     }
     *u = NULL;
     return NULL;
+*/
+
+        if(v->na_arvore) {
+            for(elem_aresta = primeiro_no(v->saida); elem_aresta; elem_aresta = proximo_no(elem_aresta)) {
+                a = (aresta) conteudo(elem_aresta);
+                if(a->vc->na_arvore == 0) { // Vertice de chegada nao esta na arvore. Aresta na fronteira.
+                    *u = a->vs;
+                    *w = a->vc;
+                    return a;
+                }
+            }
+        }
+
+    }
+    *u = NULL;
+    *w = NULL;
+    return NULL;
 }
 
 lista caminhoAumentante(grafo G, grafo M, vertice v) {
-    int i, j;
-    lista l = constroi_lista();
+// Função criada por mim antes do email do monitor.
+    lista T;// = constroi_lista();
     no elem;
     vertice u, w;
     aresta a;
+
+    if(G == NULL || M == NULL || v == NULL) {
+        return NULL;
+    }
 
     /*
     T<-({v},0)
@@ -972,7 +1214,9 @@ lista caminhoAumentante(grafo G, grafo M, vertice v) {
     Devolve o caminho vazio
     */
 
-    for(elem = primeiro_no(g->v); elem; elem = proximo_no(elem)) {
+    T = constroi_lista();
+
+    for(elem = primeiro_no(G->v); elem; elem = proximo_no(elem)) {
         u = (vertice) conteudo(elem);
         u->na_arvore = 0;
     }
@@ -982,22 +1226,105 @@ lista caminhoAumentante(grafo G, grafo M, vertice v) {
     a = aresta_na_fronteira(G, &u, &w);
     while(a) { // Se 'a' nao for NULL, 'a' eh uma aresta da fronteira.
         w->na_arvore = 1;
-        insere_lista((void *) a, l);
+        insere_lista((void *) a, T);
         if(w->estado != VERM) { // Não está coberto por M.
-            return 1;
+            return T; // T?
         }
         a = aresta_na_fronteira(G, &u, &w);
     }
 
-    return 0;
+    return T;
+}
+
+int busca_caminho(vertice v, lista l, int last) {
+    /* essa função é chamada pela função que tenta achar um caminho aumentante pra
+     * cada vértice não coberto (e retorna assim que achar) e last é inicialmente 1,
+     * pois a primeira aresta será 0 (não coberta) */
+    if (!v->coberto && !v->visitado) {
+      return TRUE;
+    }
+
+    no elem;
+    aresta a;
+    vertice w;
+
+    v->visitado = 1;
+    for(elem = primeiro_no(v->saida); elem; proximo_no(elem)) {
+        a = (aresta) conteudo(elem);
+        if(a->coberta != last) {
+            w = a->vc; // w = vizinho do vértice
+            if(!w->visitado && busca_caminho(w, l, !last)) {
+                insere_lista(a, l);
+                return TRUE;
+            }
+        }
+    }
+    for(elem = primeiro_no(v->entrada); elem; proximo_no(elem)) {
+        if(a->coberta != last) {
+            w = a->vs;
+            if(!w->visitado && busca_caminho(w, l, !last)) {
+                insere_lista(a, l);
+                return TRUE;
+            }
+        }
+    }
+
+    return FALSE;
+}
+
+lista caminho_aumentante(grafo g) {
+    no elem;
+    vertice v;
+    lista l;
+
+    l = constroi_lista();
+
+    for(elem = primeiro_no(g->v); elem; elem = proximo_no(elem)) {
+        v = (vertice) conteudo(elem);
+        v->visitado = FALSE;
+    }
+
+    for(elem = primeiro_no(g->v); elem; elem = proximo_no(elem)) {
+        v = (vertice) conteudo(elem);
+        if(!v->coberto) {
+            if(busca_caminho(v, l, 1)) {
+                return l;
+            }
+        }
+    }
+    return NULL;
 }
 
 grafo emparelhamento_maximo(grafo g) {
-    no elem;
-    vertice v;
-    lista P;
-    grafo M;
-
+    /* Ideia pra implementação e representação das estruturas:
+     * Tenho que retornar um grafo. Vou criar um grafo novo, com novos apontadores
+     * para os mesmos vértices. Os vértices ainda serão os mesmos (isso é uma boa ideia?)
+     * Estratégias:
+     * 1- Para não precisar ficar inserindo e removendo vértices loucamente do grafo M (que
+     * representará o emparelhamento) eu vou apenas marcar vértice->atributo == BRAN caso o
+     * vértice não esteja no emparelhamento e vértice->atributo == VERM caso ele pertença.
+     * 2- Para descobrir a fronteira de um vértice o algoritmo parece bem ineficiente, mas
+     * parece o melhor que é possível (a primeira vista). A ideia atual é:  
+        Percorre todos os vértices do grafo. Pra cada vértice v, vê se ele tá dentro da árvore.
+        Se ele estiver, percorre a vizinhança de saída dele (só a de saída pra garantir que
+        não vou percorrer duas vezes a mesma aresta). Para cada aresta a pertencente á lista de
+        vizinhança de saída de v, tenho um vértice u tal que {u,v} E A(G). Eu sei que v pertence
+        à árvore, então preciso que u não pertença. Se u não pertencer, a faz parte da fronteira.
+        Então retorna essa aresta.
+        Sobre o custo: passo por todos os vertices (|E(G)|), pra cada vertice, se ele estiver na
+        arvore eu percorro todas as suas arestas (|A(G)|). Na pior hipotese, seria todos os vertices
+        estando na arvore, o que daria custo E(G) * A(G). Em muitos casos eu vou economizar muitas
+        comparacoes porque vou 'ignorar' (ao custo de 1 comparacao) os vertices que nao estao na arvore.
+        Entao, na verdade, o custo eh |E(G)| + |E(T)| * |A(G)| no pior caso (|E(T)| <= |(E(G)|)). No melhor
+        caso, o custo eh 2 (o primeiro vertice ta na arvore e seu primeiro vizinho esta fora).
+      * 3- Como representar T: uma lista de arestas? É o sugerido pelo monitor.  
+     */
+    // no elem;
+    // vertice v;
+    // lista P;
+    lista l;
+    grafo e;
+/* Tentativa antes do email do monitor.
     M = constroi_grafo();
 
     for(elem = primeiro_no(g->v); elem; elem = proximo_no(elem)) {
@@ -1014,16 +1341,25 @@ grafo emparelhamento_maximo(grafo g) {
             if(primeiro_no(P)) {
                 //M = M xor E(P); // isso obviamente não funciona.
                 //M <- uniao(M, E(P)) - intersecao(M, E(P));
-                /*
-                Sei que um vertice v está em M se v->atributo == VERM, sei que v está em P se v->estado == VERM.
-                Portanto, como XOR simboliza os elementos que estão em M e não estão em P ou os elementos que estão em P
-                mas que não estão em M, 
-                */
+                
+                // Sei que um vertice v está em M se v->atributo == VERM, sei que v está em P se v->estado == VERM.
+                // Portanto, como XOR simboliza os elementos que estão em M e não estão em P ou os elementos que estão em P
+                // mas que não estão em M, 
+                
             }
         }
     }
 
     return M;
+*/
+
+    while((l = caminho_aumentante(g)) != NULL) {
+        xor(l);
+    }
+    e = constroi_grafo();
+    copia_vertices(e,g);
+    copia_arestas_cobertas(e,g);
+    return e;
 }
 
 int inserido(char* n1, char* n2, lista tabela) {
