@@ -1131,9 +1131,11 @@ void xor(lista l) {
 
     for(elem = primeiro_no(l); elem; elem = proximo_no(elem)) {
         a = (aresta) conteudo(elem);
-        printf("Coberto (old) = %d, ", a->coberta);
+        a->vc->coberto = 1;
+        a->vs->coberto = 1;
+        // printf("Coberto (old) = %d, ", a->coberta);
         a->coberta = !a->coberta;
-        printf("Coberto (new) = %d\n", a->coberta);
+        // printf("Coberto (new) = %d\n", a->coberta);
     }
 }
 
@@ -1241,9 +1243,10 @@ lista caminhoAumentante(grafo G, grafo M, vertice v) {
 int busca_caminho(vertice v, lista l, int last) {
     /* essa função é chamada pela função que tenta achar um caminho aumentante pra
      * cada vértice não coberto (e retorna assim que achar) e last é inicialmente 1,
-     * pois a primeira aresta será 0 (não coberta) */
+     * pois a primeira aresta (que tenho que achar) será 0 (não coberta) */
     if (!v->coberto && !v->visitado) {
-      return TRUE;
+        printf("Vertice %s nao ta coberto nem foi visitado!\n", v->nome);
+        return TRUE;
     }
 
     no elem;
@@ -1275,24 +1278,44 @@ int busca_caminho(vertice v, lista l, int last) {
 }
 
 lista caminho_aumentante(grafo g) {
-    no elem;
-    vertice v;
+    no elem_v, elem_a;
+    vertice v, w;
     lista l;
+    aresta a;
 
     l = constroi_lista();
 
-    for(elem = primeiro_no(g->v); elem; elem = proximo_no(elem)) {
-        v = (vertice) conteudo(elem);
-        v->visitado = FALSE;
+    for(elem_v = primeiro_no(g->v); elem_v; elem_v = proximo_no(elem_v)) {
+        v = (vertice) conteudo(elem_v);
+        v->visitado = 0;
     }
 
-    for(elem = primeiro_no(g->v); elem; elem = proximo_no(elem)) {
-        v = (vertice) conteudo(elem);
+    for(elem_v = primeiro_no(g->v); elem_v; elem_v = proximo_no(elem_v)) {
+        v = (vertice) conteudo(elem_v);
+        printf("Começando pelo vertice %s.\n", v->nome);
         if(!v->coberto) {
-            if(busca_caminho(v, l, 1)) {
-                puts("Criei mais uma lista.");
-                if(primeiro_no(l)) // Nao retorna a lista se ela for vazia.
-                    return l;
+            for(elem_a = primeiro_no(v->saida); elem_a; elem_a = proximo_no(elem_a)) {
+                a = (aresta) conteudo(elem_a);
+                w = a->vc; // w é vizinho de v.
+                if(busca_caminho(w, l, 1)) {
+                    insere_lista(a, l);
+                    printf("Criei mais uma lista com os vertices %s->%s", a->vs->nome, a->vs->nome);
+                    if(primeiro_no(l)) { // Nao retorna a lista se ela for vazia.
+                        puts("Retornando uma lista nao vazia");
+                        return l;
+                    }
+                }
+            }
+            for(elem_a = primeiro_no(v->entrada); elem_a; elem_a = proximo_no(elem_a)) {
+                w = ((aresta) conteudo(elem_a))->vs; // w é vizinho de v.
+                if(busca_caminho(w, l, 1)) {
+                    insere_lista(a, l);
+                    printf("Criei mais uma lista com os vertices %s->%s", a->vs->nome, a->vs->nome);
+                    if(primeiro_no(l)) { // Nao retorna a lista se ela for vazia.
+                        puts("Retornando uma lista nao vazia");
+                        return l;
+                    }
+                }
             }
         }
     }
@@ -1357,12 +1380,27 @@ grafo emparelhamento_maximo(grafo g) {
     return M;
 */
 
+    no elem_v, elem_a;
+    vertice v;
+    aresta a;
+
+    for(elem_v = primeiro_no(g->v); elem_v; elem_v = proximo_no(elem_v)) {
+        v = (vertice) conteudo(elem_v);
+        v->coberto = 0;
+        for(elem_a = primeiro_no(v->saida); elem_a; elem_a = proximo_no(elem_a)) {
+            a = (aresta) conteudo(elem_a);
+            a->coberta = 0;            
+        }
+    }
+
     while((l = caminho_aumentante(g)) != NULL) {
         puts("Vou fazer o xor");
         xor(l);
         destroi_lista(l, destroi_aresta);
     }
     e = constroi_grafo();
+    // strcpy(e->nome, g->nome);
+    strcpy(e->nome, "Max Matching");
     copia_vertices(e,g);
     copia_arestas_cobertas(e,g);
     return e;
