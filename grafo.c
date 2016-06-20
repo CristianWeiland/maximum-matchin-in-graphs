@@ -1131,7 +1131,9 @@ void xor(lista l) {
 
     for(elem = primeiro_no(l); elem; elem = proximo_no(elem)) {
         a = (aresta) conteudo(elem);
+        printf("Coberto (old) = %d, ", a->coberta);
         a->coberta = !a->coberta;
+        printf("Coberto (new) = %d\n", a->coberta);
     }
 }
 
@@ -1288,7 +1290,9 @@ lista caminho_aumentante(grafo g) {
         v = (vertice) conteudo(elem);
         if(!v->coberto) {
             if(busca_caminho(v, l, 1)) {
-                return l;
+                puts("Criei mais uma lista.");
+                if(primeiro_no(l)) // Nao retorna a lista se ela for vazia.
+                    return l;
             }
         }
     }
@@ -1354,7 +1358,9 @@ grafo emparelhamento_maximo(grafo g) {
 */
 
     while((l = caminho_aumentante(g)) != NULL) {
+        puts("Vou fazer o xor");
         xor(l);
+        destroi_lista(l, destroi_aresta);
     }
     e = constroi_grafo();
     copia_vertices(e,g);

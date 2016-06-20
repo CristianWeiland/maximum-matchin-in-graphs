@@ -1,0 +1,69 @@
+digraph graphname {
+    a -> b -> c [peso = 5]
+    b -> d
+    d -> b
+    e
+}
+
+/*
+graph oi {
+	a -- c -- d [weight=4];
+	a -- d [weight=3];
+	a -- b -- c;
+	b -- d;
+}
+*/
+/*
+  th
+  ab
+a -- b
+*/
+
+/*
+A---B
+|\ /|
+| X |
+|/ \|
+C---D
+
+
+
+
+
+
+DIRECIONADO
+  h   t
++---+---+
+| a | b | -- a = agnameof(aghead(aresta)), b = agnameof(agtail(aresta)). If (agnameof(aghead(aresta)) == )
+| c | d |
+| d | c |
++---+---+
+
+Processo de insercao:
+Inserindo por A:
+	Inseri aresta a -> b.
+	Mudei de 0 pra 1 === | a | b | 1 |
+
+Inserindo por B:
+	Olhei tabela.
+
+
+
+Vertice v {
+	[Aresta v -> w]
+}
+
+Vertice w {
+	[Aresta v -> w]
+}
+
+
+
+
+V a {
+	[Aresta a -> b, aresta b -> a]
+}
+V b {
+	[Aresta a -> b, aresta b -> a]
+}
+*/

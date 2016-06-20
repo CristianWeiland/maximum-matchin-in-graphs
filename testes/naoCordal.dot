@@ -1,0 +1,4 @@
+graph naoCordal {
+    a--b--f--e--d--c--b
+    c--e--a
+}
