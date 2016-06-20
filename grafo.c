@@ -1106,7 +1106,15 @@ void copia_vertices(grafo g1, grafo g2) {
 
 void copia_arestas_cobertas(grafo g1, grafo g2) {
 // N sei se funciona
-    /* Copia arestas de g2 cobertas pelo emparalhamento para g1. */
+    /* Copia arestas de g2 cobertas pelo emparalhamento para g1.
+     * A ideia é parecida com a leitura do grafo: eu leio um vértice v
+     * do grafo g2, que é o grafo que tem as arestas, e percorro a sua
+     * vizinhança. Como os vértices do grafo g1 são diferentes dos vértices
+     * de g2, eu tenho que procurar o semelhante a v em g1, que vou salvar
+     * em v_saida. Depois, percorre a vizinhança de v (porque ele tem as
+     * arestas) e acha o vértice de chegada. Com esse vertice de chegada
+     * (a->vc), pego o semelhante a ele em g1, que salvo em v_chegada.
+     * Depois, insiro em g1. */
     no elem_v, elem_a;
     vertice v, v_saida, v_chegada;
     aresta a;
@@ -1128,116 +1136,29 @@ void xor(lista l) {
 /* Usando l como lista de arestas */
     aresta a;
     no elem;
-
+/* Impressoes
+    puts("Começando");
     for(elem = primeiro_no(l); elem; elem = proximo_no(elem)) {
         a = (aresta) conteudo(elem);
-        a->vc->coberto = 1;
+        printf("%s -> %s = %d\n", a->vs->nome, a->vc->nome, a->coberta);
+    }
+*/
+    for(elem = primeiro_no(l); elem; elem = proximo_no(elem)) {
+        a = (aresta) conteudo(elem);
+        a->vc->coberto = 1; // Essas duas atribuições provavelmente tão fazendo (quase todas) duplicadas.
         a->vs->coberto = 1;
         // printf("Coberto (old) = %d, ", a->coberta);
-        a->coberta = !a->coberta;
+        // a->coberta = !a->coberta;
+        a->coberta = (a->coberta != 0) ? 0 : 1;
         // printf("Coberto (new) = %d\n", a->coberta);
     }
-}
-
-aresta aresta_na_fronteira(grafo g, vertice *u, vertice *w) {
-/*
-Percorre todos os vértices do grafo. Pra cada vértice v, vê se ele tá dentro da árvore.
-Se ele estiver, percorre a vizinhança de saída dele (só a de saída pra garantir que
-não vou percorrer duas vezes a mesma aresta). Para cada aresta a pertencente á lista de
-vizinhança de saída de v, tenho um vértice u tal que {u,v} E A(G). Eu sei que v pertence
-à árvore, então preciso que u não pertença. Se u não pertencer, a faz parte da fronteira.
-Então retorna essa aresta.
+/* Impressoes
+    puts("Invertido:");
+    for(elem = primeiro_no(l); elem; elem = proximo_no(elem)) {
+        a = (aresta) conteudo(elem);
+        printf("%s -> %s = %d\n", a->vs->nome, a->vc->nome, a->coberta);
+    }
 */
-    no elem_vertice, elem_aresta;
-    vertice v;
-    aresta a;
-
-    for(elem_vertice = primeiro_no(g->v); elem_vertice; elem_vertice = proximo_no(elem_vertice)) {
-        v = (vertice) conteudo(elem_vertice);
-/*
-        if(v->saida->na_arvore == 1) {
-            deve_estar = 0; // Esse vertice (de saida) ta fora da arvore. O outro vertice (de chegada) deve estar dentro da arvore.
-        } else {
-            deve_estar = 1; // Esse vertice (de saida) ta fora da arvore. O outro vertice (de chegada) deve estar dentro da arvore.
-        }
-
-        for(elem_aresta = primeiro_no(v->saida); elem_aresta; elem_aresta = proximo_no(elem_aresta)) {
-            a = (aresta) conteudo(elem_aresta);
-            if(a->vc->na_arvore == deve_estar) { // Aresta de fronteira.
-                if(v->saida->na_arvore) {
-                    *u = a->vs; // a->vs é o vértice que está dentro da árvore.
-                    *w = a->vc;
-                } else {
-                    *u = a->vc; // a->vc é o vértice que está dentro da árvore.
-                    *w = a->vs;
-                }
-                return a;
-            }
-        }
-    }
-    *u = NULL;
-    return NULL;
-*/
-
-        if(v->na_arvore) {
-            for(elem_aresta = primeiro_no(v->saida); elem_aresta; elem_aresta = proximo_no(elem_aresta)) {
-                a = (aresta) conteudo(elem_aresta);
-                if(a->vc->na_arvore == 0) { // Vertice de chegada nao esta na arvore. Aresta na fronteira.
-                    *u = a->vs;
-                    *w = a->vc;
-                    return a;
-                }
-            }
-        }
-
-    }
-    *u = NULL;
-    *w = NULL;
-    return NULL;
-}
-
-lista caminhoAumentante(grafo G, grafo M, vertice v) {
-// Função criada por mim antes do email do monitor.
-    lista T;// = constroi_lista();
-    no elem;
-    vertice u, w;
-    aresta a;
-
-    if(G == NULL || M == NULL || v == NULL) {
-        return NULL;
-    }
-
-    /*
-    T<-({v},0)
-    Enquanto fronteiraG(E(T)) != 0
-        {u,w} aresta em fronteiraG(E(T)) com uEV(T)
-        Acrescente o vértice w e a aresta {u,w} a T
-        Se w não está coberto por M
-            Devolva vTw
-        Acrescente a T a aresta de M que cobre w
-    Devolve o caminho vazio
-    */
-
-    T = constroi_lista();
-
-    for(elem = primeiro_no(G->v); elem; elem = proximo_no(elem)) {
-        u = (vertice) conteudo(elem);
-        u->na_arvore = 0;
-    }
-
-    v->na_arvore = 1;
-
-    a = aresta_na_fronteira(G, &u, &w);
-    while(a) { // Se 'a' nao for NULL, 'a' eh uma aresta da fronteira.
-        w->na_arvore = 1;
-        insere_lista((void *) a, T);
-        if(w->estado != VERM) { // Não está coberto por M.
-            return T; // T?
-        }
-        a = aresta_na_fronteira(G, &u, &w);
-    }
-
-    return T;
 }
 
 int busca_caminho(vertice v, lista l, int last) {
@@ -1245,7 +1166,7 @@ int busca_caminho(vertice v, lista l, int last) {
      * cada vértice não coberto (e retorna assim que achar) e last é inicialmente 1,
      * pois a primeira aresta (que tenho que achar) será 0 (não coberta) */
     if (!v->coberto && !v->visitado) {
-        printf("Vertice %s nao ta coberto nem foi visitado!\n", v->nome);
+        // printf("(Base) Vertice %s nao ta coberto nem foi visitado!\n", v->nome);
         return TRUE;
     }
 
@@ -1254,21 +1175,25 @@ int busca_caminho(vertice v, lista l, int last) {
     vertice w;
 
     v->visitado = 1;
-    for(elem = primeiro_no(v->saida); elem; proximo_no(elem)) {
+    // printf("Buscando caminho pro vertice %s.\n", v->nome);
+    for(elem = primeiro_no(v->saida); elem; elem = proximo_no(elem)) {
         a = (aresta) conteudo(elem);
         if(a->coberta != last) {
             w = a->vc; // w = vizinho do vértice
             if(!w->visitado && busca_caminho(w, l, !last)) {
                 insere_lista(a, l);
+                // puts("Inseri.");
                 return TRUE;
             }
         }
     }
-    for(elem = primeiro_no(v->entrada); elem; proximo_no(elem)) {
+    for(elem = primeiro_no(v->entrada); elem; elem = proximo_no(elem)) {
+        a = (aresta) conteudo(elem);
         if(a->coberta != last) {
             w = a->vs;
             if(!w->visitado && busca_caminho(w, l, !last)) {
                 insere_lista(a, l);
+                // puts("Inseri.");
                 return TRUE;
             }
         }
@@ -1278,7 +1203,7 @@ int busca_caminho(vertice v, lista l, int last) {
 }
 
 lista caminho_aumentante(grafo g) {
-    no elem_v, elem_a;
+    no elem_v, elem_a, elem_aux;
     vertice v, w;
     lista l;
     aresta a;
@@ -1291,32 +1216,57 @@ lista caminho_aumentante(grafo g) {
     }
 
     for(elem_v = primeiro_no(g->v); elem_v; elem_v = proximo_no(elem_v)) {
+
+
+        for(elem_aux = primeiro_no(g->v); elem_aux; elem_aux = proximo_no(elem_aux)) {
+            v = (vertice) conteudo(elem_aux);
+            v->visitado = 0;
+        }
+
         v = (vertice) conteudo(elem_v);
-        printf("Começando pelo vertice %s.\n", v->nome);
+        v->visitado = 1;
+
         if(!v->coberto) {
+            printf("Começando pelo vertice %s.\n", v->nome);
+            if(busca_caminho(v, l, 1)) {
+                if(primeiro_no(l)) { // Lista nao ta vazia.
+                    return l;
+                }
+            }
+            /*
             for(elem_a = primeiro_no(v->saida); elem_a; elem_a = proximo_no(elem_a)) {
                 a = (aresta) conteudo(elem_a);
                 w = a->vc; // w é vizinho de v.
                 if(busca_caminho(w, l, 1)) {
-                    insere_lista(a, l);
-                    printf("Criei mais uma lista com os vertices %s->%s", a->vs->nome, a->vs->nome);
+                    // insere_lista(a, l); // Acho que não devo fazer isso aqui.
+                    printf("Criei mais uma lista com os vertices %s -> %s\n", a->vs->nome, a->vc->nome);
                     if(primeiro_no(l)) { // Nao retorna a lista se ela for vazia.
                         puts("Retornando uma lista nao vazia");
+                        return l;
+                    } else { // vTw, mas T é nulo, então insere vw.
+                        insere_lista(a, l);
+                        puts("Inserindo e retornando.");
                         return l;
                     }
                 }
             }
             for(elem_a = primeiro_no(v->entrada); elem_a; elem_a = proximo_no(elem_a)) {
-                w = ((aresta) conteudo(elem_a))->vs; // w é vizinho de v.
+                a = (aresta) conteudo(elem_a);
+                w = a->vs; // w é vizinho de v.
                 if(busca_caminho(w, l, 1)) {
-                    insere_lista(a, l);
-                    printf("Criei mais uma lista com os vertices %s->%s", a->vs->nome, a->vs->nome);
+                    // insere_lista(a, l); // Acho que não devo fazer isso aqui.
+                    printf("Criei mais uma lista com os vertices %s -> %s\n", a->vs->nome, a->vc->nome);
                     if(primeiro_no(l)) { // Nao retorna a lista se ela for vazia.
                         puts("Retornando uma lista nao vazia");
+                        return l;
+                    } else { // vTw, mas T é nulo, então insere vw.
+                        insere_lista(a, l);
+                        puts("Inserindo e retornando.");
                         return l;
                     }
                 }
             }
+            */
         }
     }
     return NULL;
@@ -1396,7 +1346,15 @@ grafo emparelhamento_maximo(grafo g) {
     while((l = caminho_aumentante(g)) != NULL) {
         puts("Vou fazer o xor");
         xor(l);
-        destroi_lista(l, destroi_aresta);
+/*
+        printf("\nCoberto (new) = ");
+        for(elem_v = primeiro_no(l); elem_v; elem_v = proximo_no(elem_v)) {
+            a = (aresta) conteudo(elem_v);
+            printf("%d, ", a->coberta);
+        }
+*/
+        //destroi_lista(l, destroi_aresta);
+        destroi_lista(l, NULL);
     }
     e = constroi_grafo();
     // strcpy(e->nome, g->nome);
@@ -1560,3 +1518,107 @@ void imprime_vertice(void* param) {
     printf("%s, ",v->nome);
     return ;
 }
+
+
+aresta aresta_na_fronteira(grafo g, vertice *u, vertice *w) {
+/*
+Percorre todos os vértices do grafo. Pra cada vértice v, vê se ele tá dentro da árvore.
+Se ele estiver, percorre a vizinhança de saída dele (só a de saída pra garantir que
+não vou percorrer duas vezes a mesma aresta). Para cada aresta a pertencente á lista de
+vizinhança de saída de v, tenho um vértice u tal que {u,v} E A(G). Eu sei que v pertence
+à árvore, então preciso que u não pertença. Se u não pertencer, a faz parte da fronteira.
+Então retorna essa aresta.
+*/
+    no elem_vertice, elem_aresta;
+    vertice v;
+    aresta a;
+
+    for(elem_vertice = primeiro_no(g->v); elem_vertice; elem_vertice = proximo_no(elem_vertice)) {
+        v = (vertice) conteudo(elem_vertice);
+/*
+        if(v->saida->na_arvore == 1) {
+            deve_estar = 0; // Esse vertice (de saida) ta fora da arvore. O outro vertice (de chegada) deve estar dentro da arvore.
+        } else {
+            deve_estar = 1; // Esse vertice (de saida) ta fora da arvore. O outro vertice (de chegada) deve estar dentro da arvore.
+        }
+
+        for(elem_aresta = primeiro_no(v->saida); elem_aresta; elem_aresta = proximo_no(elem_aresta)) {
+            a = (aresta) conteudo(elem_aresta);
+            if(a->vc->na_arvore == deve_estar) { // Aresta de fronteira.
+                if(v->saida->na_arvore) {
+                    *u = a->vs; // a->vs é o vértice que está dentro da árvore.
+                    *w = a->vc;
+                } else {
+                    *u = a->vc; // a->vc é o vértice que está dentro da árvore.
+                    *w = a->vs;
+                }
+                return a;
+            }
+        }
+    }
+    *u = NULL;
+    return NULL;
+*/
+
+        if(v->na_arvore) {
+            for(elem_aresta = primeiro_no(v->saida); elem_aresta; elem_aresta = proximo_no(elem_aresta)) {
+                a = (aresta) conteudo(elem_aresta);
+                if(a->vc->na_arvore == 0) { // Vertice de chegada nao esta na arvore. Aresta na fronteira.
+                    *u = a->vs;
+                    *w = a->vc;
+                    return a;
+                }
+            }
+        }
+
+    }
+    *u = NULL;
+    *w = NULL;
+    return NULL;
+}
+
+lista caminhoAumentante(grafo G, grafo M, vertice v) {
+// Função criada por mim antes do email do monitor.
+    lista T;// = constroi_lista();
+    no elem;
+    vertice u, w;
+    aresta a;
+
+    if(G == NULL || M == NULL || v == NULL) {
+        return NULL;
+    }
+
+    /*
+    T<-({v},0)
+    Enquanto fronteiraG(E(T)) != 0
+        {u,w} aresta em fronteiraG(E(T)) com uEV(T)
+        Acrescente o vértice w e a aresta {u,w} a T
+        Se w não está coberto por M
+            Devolva vTw
+        Acrescente a T a aresta de M que cobre w
+    Devolve o caminho vazio
+    */
+
+    T = constroi_lista();
+
+    for(elem = primeiro_no(G->v); elem; elem = proximo_no(elem)) {
+        u = (vertice) conteudo(elem);
+        u->na_arvore = 0;
+    }
+
+    v->na_arvore = 1;
+
+    a = aresta_na_fronteira(G, &u, &w);
+    while(a) { // Se 'a' nao for NULL, 'a' eh uma aresta da fronteira.
+        w->na_arvore = 1;
+        insere_lista((void *) a, T);
+        if(w->estado != VERM) { // Não está coberto por M.
+            return T; // T?
+        }
+        a = aresta_na_fronteira(G, &u, &w);
+    }
+
+    return T;
+}
+
+
