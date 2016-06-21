@@ -1165,8 +1165,8 @@ int busca_caminho(vertice v, lista l, int last) {
     /* essa função é chamada pela função que tenta achar um caminho aumentante pra
      * cada vértice não coberto (e retorna assim que achar) e last é inicialmente 1,
      * pois a primeira aresta (que tenho que achar) será 0 (não coberta) */
+
     if (!v->coberto && !v->visitado) {
-        // printf("(Base) Vertice %s nao ta coberto nem foi visitado!\n", v->nome);
         return TRUE;
     }
 
@@ -1175,14 +1175,13 @@ int busca_caminho(vertice v, lista l, int last) {
     vertice w;
 
     v->visitado = 1;
-    // printf("Buscando caminho pro vertice %s.\n", v->nome);
+
     for(elem = primeiro_no(v->saida); elem; elem = proximo_no(elem)) {
         a = (aresta) conteudo(elem);
         if(a->coberta != last) {
             w = a->vc; // w = vizinho do vértice
             if(!w->visitado && busca_caminho(w, l, !last)) {
                 insere_lista(a, l);
-                // puts("Inseri.");
                 return TRUE;
             }
         }
@@ -1193,7 +1192,6 @@ int busca_caminho(vertice v, lista l, int last) {
             w = a->vs;
             if(!w->visitado && busca_caminho(w, l, !last)) {
                 insere_lista(a, l);
-                // puts("Inseri.");
                 return TRUE;
             }
         }
@@ -1203,10 +1201,9 @@ int busca_caminho(vertice v, lista l, int last) {
 }
 
 lista caminho_aumentante(grafo g) {
-    no elem_v, elem_a, elem_aux;
-    vertice v, w;
+    no elem_v, elem_aux;
+    vertice v;
     lista l;
-    aresta a;
 
     l = constroi_lista();
 
@@ -1273,63 +1270,8 @@ lista caminho_aumentante(grafo g) {
 }
 
 grafo emparelhamento_maximo(grafo g) {
-    /* Ideia pra implementação e representação das estruturas:
-     * Tenho que retornar um grafo. Vou criar um grafo novo, com novos apontadores
-     * para os mesmos vértices. Os vértices ainda serão os mesmos (isso é uma boa ideia?)
-     * Estratégias:
-     * 1- Para não precisar ficar inserindo e removendo vértices loucamente do grafo M (que
-     * representará o emparelhamento) eu vou apenas marcar vértice->atributo == BRAN caso o
-     * vértice não esteja no emparelhamento e vértice->atributo == VERM caso ele pertença.
-     * 2- Para descobrir a fronteira de um vértice o algoritmo parece bem ineficiente, mas
-     * parece o melhor que é possível (a primeira vista). A ideia atual é:  
-        Percorre todos os vértices do grafo. Pra cada vértice v, vê se ele tá dentro da árvore.
-        Se ele estiver, percorre a vizinhança de saída dele (só a de saída pra garantir que
-        não vou percorrer duas vezes a mesma aresta). Para cada aresta a pertencente á lista de
-        vizinhança de saída de v, tenho um vértice u tal que {u,v} E A(G). Eu sei que v pertence
-        à árvore, então preciso que u não pertença. Se u não pertencer, a faz parte da fronteira.
-        Então retorna essa aresta.
-        Sobre o custo: passo por todos os vertices (|E(G)|), pra cada vertice, se ele estiver na
-        arvore eu percorro todas as suas arestas (|A(G)|). Na pior hipotese, seria todos os vertices
-        estando na arvore, o que daria custo E(G) * A(G). Em muitos casos eu vou economizar muitas
-        comparacoes porque vou 'ignorar' (ao custo de 1 comparacao) os vertices que nao estao na arvore.
-        Entao, na verdade, o custo eh |E(G)| + |E(T)| * |A(G)| no pior caso (|E(T)| <= |(E(G)|)). No melhor
-        caso, o custo eh 2 (o primeiro vertice ta na arvore e seu primeiro vizinho esta fora).
-      * 3- Como representar T: uma lista de arestas? É o sugerido pelo monitor.  
-     */
-    // no elem;
-    // vertice v;
-    // lista P;
     lista l;
     grafo e;
-/* Tentativa antes do email do monitor.
-    M = constroi_grafo();
-
-    for(elem = primeiro_no(g->v); elem; elem = proximo_no(elem)) {
-        v = (vertice) conteudo(elem);
-        // Se atributo é BRAN, não está no emparelhamento.
-        v->atributo = BRAN;
-    }
-
-    for(elem = primeiro_no(g->v); elem; elem = proximo_no(elem)) {
-        v = (vertice) conteudo(elem);
-        // Se atributo é BRAN, não está no emparelhamento.
-        if(v->atributo != BRAN) {
-            P = caminhoAumentante(g, M, v);
-            if(primeiro_no(P)) {
-                //M = M xor E(P); // isso obviamente não funciona.
-                //M <- uniao(M, E(P)) - intersecao(M, E(P));
-                
-                // Sei que um vertice v está em M se v->atributo == VERM, sei que v está em P se v->estado == VERM.
-                // Portanto, como XOR simboliza os elementos que estão em M e não estão em P ou os elementos que estão em P
-                // mas que não estão em M, 
-                
-            }
-        }
-    }
-
-    return M;
-*/
-
     no elem_v, elem_a;
     vertice v;
     aresta a;
@@ -1344,17 +1286,9 @@ grafo emparelhamento_maximo(grafo g) {
     }
 
     while((l = caminho_aumentante(g)) != NULL) {
-        puts("Vou fazer o xor");
+        // puts("Vou fazer o xor");
         xor(l);
-/*
-        printf("\nCoberto (new) = ");
-        for(elem_v = primeiro_no(l); elem_v; elem_v = proximo_no(elem_v)) {
-            a = (aresta) conteudo(elem_v);
-            printf("%d, ", a->coberta);
-        }
-*/
-        //destroi_lista(l, destroi_aresta);
-        destroi_lista(l, NULL);
+        destroi_lista(l, NULL); // Nao destroi as arestas porque elas ainda fazem parte do grafo g.
     }
     e = constroi_grafo();
     // strcpy(e->nome, g->nome);
@@ -1622,3 +1556,60 @@ lista caminhoAumentante(grafo G, grafo M, vertice v) {
 }
 
 
+// Ideia anterior pra funcao emparelhamento_maximo(grafo g)
+    /* Ideia pra implementação e representação das estruturas:
+     * Tenho que retornar um grafo. Vou criar um grafo novo, com novos apontadores
+     * para os mesmos vértices. Os vértices ainda serão os mesmos (isso é uma boa ideia?)
+     * Estratégias:
+     * 1- Para não precisar ficar inserindo e removendo vértices loucamente do grafo M (que
+     * representará o emparelhamento) eu vou apenas marcar vértice->atributo == BRAN caso o
+     * vértice não esteja no emparelhamento e vértice->atributo == VERM caso ele pertença.
+     * 2- Para descobrir a fronteira de um vértice o algoritmo parece bem ineficiente, mas
+     * parece o melhor que é possível (a primeira vista). A ideia atual é:  
+        Percorre todos os vértices do grafo. Pra cada vértice v, vê se ele tá dentro da árvore.
+        Se ele estiver, percorre a vizinhança de saída dele (só a de saída pra garantir que
+        não vou percorrer duas vezes a mesma aresta). Para cada aresta a pertencente á lista de
+        vizinhança de saída de v, tenho um vértice u tal que {u,v} E A(G). Eu sei que v pertence
+        à árvore, então preciso que u não pertença. Se u não pertencer, a faz parte da fronteira.
+        Então retorna essa aresta.
+        Sobre o custo: passo por todos os vertices (|E(G)|), pra cada vertice, se ele estiver na
+        arvore eu percorro todas as suas arestas (|A(G)|). Na pior hipotese, seria todos os vertices
+        estando na arvore, o que daria custo E(G) * A(G). Em muitos casos eu vou economizar muitas
+        comparacoes porque vou 'ignorar' (ao custo de 1 comparacao) os vertices que nao estao na arvore.
+        Entao, na verdade, o custo eh |E(G)| + |E(T)| * |A(G)| no pior caso (|E(T)| <= |(E(G)|)). No melhor
+        caso, o custo eh 2 (o primeiro vertice ta na arvore e seu primeiro vizinho esta fora).
+      * 3- Como representar T: uma lista de arestas? É o sugerido pelo monitor.  
+     */
+    // no elem;
+    // vertice v;
+    // lista P;
+    // lista l;
+    // grafo e;
+/* Tentativa antes do email do monitor.
+    M = constroi_grafo();
+
+    for(elem = primeiro_no(g->v); elem; elem = proximo_no(elem)) {
+        v = (vertice) conteudo(elem);
+        // Se atributo é BRAN, não está no emparelhamento.
+        v->atributo = BRAN;
+    }
+
+    for(elem = primeiro_no(g->v); elem; elem = proximo_no(elem)) {
+        v = (vertice) conteudo(elem);
+        // Se atributo é BRAN, não está no emparelhamento.
+        if(v->atributo != BRAN) {
+            P = caminhoAumentante(g, M, v);
+            if(primeiro_no(P)) {
+                //M = M xor E(P); // isso obviamente não funciona.
+                //M <- uniao(M, E(P)) - intersecao(M, E(P));
+                
+                // Sei que um vertice v está em M se v->atributo == VERM, sei que v está em P se v->estado == VERM.
+                // Portanto, como XOR simboliza os elementos que estão em M e não estão em P ou os elementos que estão em P
+                // mas que não estão em M, 
+                
+            }
+        }
+    }
+
+    return M;
+*/
