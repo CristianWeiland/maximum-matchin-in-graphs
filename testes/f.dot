@@ -1,0 +1,7 @@
+strict digraph "f" {
+	a->b
+	b->c
+	d->e
+	e->a
+	b->a
+}

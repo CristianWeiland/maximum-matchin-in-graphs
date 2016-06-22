@@ -1,0 +1,124 @@
+graph cordal {
+    a--b--c
+    b--d
+    a--c--d--e--f
+}
+
+/*
+PROVA QUE É CORDAL
+a--b  e--f
+| /| /
+|/ |/
+c--d
+
+B é simplicial
+
+Removendo B:
+a     e--f
+|    /
+|   /
+c--d
+
+A é simplicial
+
+Removendo A:
+      e--f
+     /
+    /
+c--d
+
+C é simplicial
+
+Removendo C:
+   e--f
+  /
+ /
+d
+
+D é simplicial
+
+Removendo D:
+e--f
+
+E é simplicial
+
+Removendo E:
+f
+
+Cordal!!
+
+---------
+Prova 2:
+a--b  e--f
+| /| /
+|/ |/
+c--d
+
+F é simplicial
+
+Removendo F:
+a     e
+|    /
+|   /
+c--d
+
+A é simplicial
+
+Removendo A:
+   b--e
+  /| /
+ / |/
+c--d
+
+E é simplicial
+
+Removendo E:
+   b
+  /|
+ / |
+c--d
+
+B é simplicial
+
+Removendo B:
+c--d
+
+D é simplicial
+
+Removendo D:
+c
+
+
+
+
+
+
+a--b  e--f
+| /| /
+|/ |/
+c--d
+
+   b  e--f
+  /| /
+ / |/
+c--d
+
+
+   b  e--f
+   | /
+   |/
+   d
+
+a--b  e--f
+| /| /
+|/ |/
+c--d
+
+
+a--b  e--f
+| /| /
+|/ |/
+c--d
+
+
+*/
