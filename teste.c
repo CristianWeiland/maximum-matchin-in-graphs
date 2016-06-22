@@ -22,6 +22,7 @@ int main(void) {
 
   grafo emparelhamento = emparelhamento_maximo(g);
   escreve_grafo(stdout,emparelhamento);
-  
+  printf("Tamanho do Emparelhamento: %d\n", n_arestas(emparelhamento));
+
   return ! (destroi_grafo(emparelhamento) && destroi_grafo(g));
 }

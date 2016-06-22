@@ -17,11 +17,6 @@
 #define AZUL 2
 #define FDR -1 // Fim de Rotulo
 
-// Esses defines já existem em cgraph.h
-// #define FALSE 0
-// #define TRUE !FALSE
-
-
 //---------------------------------------------------------------------------
 // nó de lista encadeada cujo conteúdo é um void *
 struct no {
@@ -318,20 +313,20 @@ int destroi_lista(lista l, int destroi(void *)) {
 //---------------------------------------------------------------------------
 // insere um novo nó na lista l cujo conteúdo é p
 //
-// devolve o no recém-criado 
+// devolve o no recém-criado
 //      ou NULL em caso de falha
 
-no insere_lista(void *conteudo, lista l) { 
+no insere_lista(void *conteudo, lista l) {
 
   no novo = malloc(sizeof(struct no));
 
-  if ( ! novo ) 
+  if ( ! novo )
     return NULL;
 
   novo->conteudo = conteudo;
   novo->proximo = primeiro_no(l);
   ++l->tamanho;
-  
+
   return l->primeiro = novo;
 }
 
@@ -1136,29 +1131,14 @@ void xor(lista l) {
 /* Usando l como lista de arestas */
     aresta a;
     no elem;
-/* Impressoes
-    puts("Começando");
-    for(elem = primeiro_no(l); elem; elem = proximo_no(elem)) {
-        a = (aresta) conteudo(elem);
-        printf("%s -> %s = %d\n", a->vs->nome, a->vc->nome, a->coberta);
-    }
-*/
+
     for(elem = primeiro_no(l); elem; elem = proximo_no(elem)) {
         a = (aresta) conteudo(elem);
         a->vc->coberto = 1; // Essas duas atribuições provavelmente tão fazendo (quase todas) duplicadas.
         a->vs->coberto = 1;
-        // printf("Coberto (old) = %d, ", a->coberta);
         // a->coberta = !a->coberta;
         a->coberta = (a->coberta != 0) ? 0 : 1;
-        // printf("Coberto (new) = %d\n", a->coberta);
     }
-/* Impressoes
-    puts("Invertido:");
-    for(elem = primeiro_no(l); elem; elem = proximo_no(elem)) {
-        a = (aresta) conteudo(elem);
-        printf("%s -> %s = %d\n", a->vs->nome, a->vc->nome, a->coberta);
-    }
-*/
 }
 
 int busca_caminho(vertice v, lista l, int last) {
@@ -1224,7 +1204,6 @@ lista caminho_aumentante(grafo g) {
         v->visitado = 1;
 
         if(!v->coberto) {
-            printf("Começando pelo vertice %s.\n", v->nome);
             if(busca_caminho(v, l, 1)) {
                 if(primeiro_no(l)) { // Lista nao ta vazia.
                     return l;
@@ -1281,17 +1260,15 @@ grafo emparelhamento_maximo(grafo g) {
         v->coberto = 0;
         for(elem_a = primeiro_no(v->saida); elem_a; elem_a = proximo_no(elem_a)) {
             a = (aresta) conteudo(elem_a);
-            a->coberta = 0;            
+            a->coberta = 0;
         }
     }
 
     while((l = caminho_aumentante(g)) != NULL) {
-        // puts("Vou fazer o xor");
         xor(l);
         destroi_lista(l, NULL); // Nao destroi as arestas porque elas ainda fazem parte do grafo g.
     }
     e = constroi_grafo();
-    // strcpy(e->nome, g->nome);
     strcpy(e->nome, "Max Matching");
     copia_vertices(e,g);
     copia_arestas_cobertas(e,g);
