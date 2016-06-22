@@ -1,0 +1,10 @@
+strict graph "Par" {
+    a--b
+    c--d
+    d--e
+    f--e
+    g
+    h
+    i
+}
+
