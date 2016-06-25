@@ -78,16 +78,6 @@ struct aresta {
 };
 
 //------------------------------------------------------------------------------
-// a estrutura par servira para formar uma tabela de pares head e tail.
-// Cada par tera como funcao indicar que o par jah foi inserido ou utilizado
-// em alguma funcao, para tratar arestas duplicadas.
-typedef struct par *par;
-struct par {
-	char *head;
-	char *tail;
-};
-
-//------------------------------------------------------------------------------
 // Protótipos de Funções Auxiliares Criadas:
 
 //------------------------------------------------------------------------------
@@ -130,11 +120,6 @@ vertice copia_vertice(vertice v);
 grafo copia_subgrafo(grafo g, lista excecoes);
 
 //------------------------------------------------------------------------------
-// Desalloca memoria de um elemento par (argumento eh void* para a funcao poder ser
-// usada como parametro da funcao destroi_lista)
-int destroi_par(void* param);
-
-//------------------------------------------------------------------------------
 // Desalloca memoria de uma aresta (argumento eh void* para a funcao poder ser
 // usada como parametro da funcao destroi_lista)
 int destroi_aresta(void *v);
@@ -162,11 +147,6 @@ int adjacente(vertice v, vertice v2);
 // Um vertice V de um conjunto de vertices C de um grafo G é uma clique em G
 // se todo vértice no conjunto C é vizinho de V em G
 int vertice_clique(vertice v, lista l);
-
-//------------------------------------------------------------------------------
-// Verifica se um elemento 'Par' ja foi inserido na tabela. Caso ja tenha sido
-// inserido, retorna 1. Caso nao tenha sido inserido, insere-o e retorna 0.
-int inserido(char* n1, char* n2, lista tabela);
 
 //------------------------------------------------------------------------------
 // percorre a lista e retorna 1 se o parametro conteudo estiver dentro dessa
@@ -209,17 +189,33 @@ no v_rotulo_maximo(lista l);
 lista busca_largura_lexicografica_vertice(grafo g, vertice r, lista ordem);
 
 
+//------------------------------------------------------------------------------
+// Retorna 1 se a aresta estiver coberta, 0 caso contrario.
 int aresta_coberta(aresta a);
-void copia_vertices(grafo g1, grafo g2);
-void copia_arestas_cobertas(grafo g1, grafo g2);
-aresta aresta_na_fronteira(grafo g, vertice *u, vertice *w);
-void xor(lista l);
-int busca_caminho(vertice v, lista l, int last);
-lista caminho_aumentante(grafo g);
 
 //------------------------------------------------------------------------------
-// Descobre o caminho aumentante.
-lista caminhoAumentante(grafo G, grafo M, vertice v);
+// Copia os vertices cobertos de g2 para g1, criando novos vertices no processo.
+void copia_vertices(grafo g1, grafo g2);
+
+//------------------------------------------------------------------------------
+// Copia as arestas cobertas de g2 para g1, criando arestas entre os vertices
+// de g1.
+void copia_arestas_cobertas(grafo g1, grafo g2);
+
+//------------------------------------------------------------------------------
+// Efetua a operação xor numa lista, basicamente fazendo:
+// - Se a aresta estava coberta, ela fica não coberta.
+// - Se a aresta não estava coberta, ela fica coberta.
+void xor(lista l);
+
+//------------------------------------------------------------------------------
+// Função recursiva que busca um camminho aumentante. Caso eles eja encontrado,
+// retorna 1 e o caminho aumentante é representado por uma lista de arestas em l.
+int busca_caminho(vertice v, lista l, int last);
+
+//------------------------------------------------------------------------------
+// Procura um caminho aumentante (se existir) no grafo g.
+lista caminho_aumentante(grafo g);
 
 //------------------------------------------------------------------------------
 // Implementação das Funções:
@@ -331,7 +327,7 @@ no insere_lista(void *conteudo, lista l) {
 }
 
 //------------------------------------------------------------------------------
-//
+// Remove um nó de uma lista e executa a função destroi no conteúdo de cada nó.
 
 int remove_no(struct lista *l, struct no *rno, int destroi(void *)) {
     int r = 1;
@@ -420,18 +416,6 @@ aresta constroi_aresta(void) {
     }
     a->peso = PESO_DEFAULT;
     return a;
-}
-
-int destroi_par(void* param) {
-    par p = (par) param;
-    if(p != NULL) {
-        if(p->head != NULL)
-            free(p->head);
-        if(p->tail != NULL)
-            free(p->tail);
-        free(p);
-    }
-    return 1;
 }
 
 void imprime_lista_arestas(lista l) {
@@ -563,7 +547,6 @@ grafo copia_grafo(grafo g) {
     no elem, childElem;
     void* content;
     vertice v;
-    lista tabela = constroi_lista();
 
     grafo g2 = constroi_grafo();
 
@@ -575,7 +558,6 @@ grafo copia_grafo(grafo g) {
     for(elem = primeiro_no(g->v); elem; elem = proximo_no(elem)) {
         content = (void*) copia_vertice(conteudo(elem));
         if(insere_lista(content, g2->v) == NULL) {
-            destroi_lista(tabela,destroi_par);
             perror("(copia_grafo) Erro ao inserir vertice no grafo copia.");
             return NULL;
         }
@@ -589,19 +571,15 @@ grafo copia_grafo(grafo g) {
             // cria uma aresta nova e insere no grafo novo
             content = (void*) copia_aresta(conteudo(childElem), g2);
             if(insere_lista(content, ((aresta)content)->vc->saida) == NULL) {
-                destroi_lista(tabela,destroi_par);
                 perror("(copia_grafo) Erro ao inserir aresta no vertice copia.");
                 return NULL;
             }
             if(insere_lista(content, ((aresta)content)->vs->entrada) == NULL) {
-                destroi_lista(tabela,destroi_par);
                 perror("(copia_grafo) Erro ao inserir aresta no vertice copia.");
                 return NULL;
             }
         }
     }
-
-    destroi_lista(tabela,destroi_par);
 
     return g2;
 }
@@ -1095,7 +1073,7 @@ inline int aresta_coberta(aresta a) {
 
 void copia_vertices(grafo g1, grafo g2) {
     /* Versão criando vértices novos (pois devo mudar a lista de vizinhança dele).
-       Copia os vértices e arestas de g2 para g1 (g1 é um grafo vazio no início) */
+       Copia os vértices de g2 para g1 (g1 é um grafo vazio no início) */
     no elem;
     vertice v;
 
@@ -1141,10 +1119,9 @@ void xor(lista l) {
 
     for(elem = primeiro_no(l); elem; elem = proximo_no(elem)) {
         a = (aresta) conteudo(elem);
-        a->vc->coberto = 1; // Essas duas atribuições provavelmente tão fazendo (quase todas) duplicadas.
+        a->vc->coberto = 1;
         a->vs->coberto = 1;
-        // a->coberta = !a->coberta;
-        a->coberta = (a->coberta != 0) ? 0 : 1;
+        a->coberta = !a->coberta;
     }
 }
 
@@ -1248,27 +1225,6 @@ grafo emparelhamento_maximo(grafo g) {
     copia_vertices(e,g);
     copia_arestas_cobertas(e,g);
     return e;
-}
-
-int inserido(char* n1, char* n2, lista tabela) {
-    no elem;
-    par p;
-    for (elem = primeiro_no(tabela); elem; elem = proximo_no(elem)) {
-        p = conteudo(elem);
-        if(strcmp(n1,p->head) == 0 && strcmp(n2,p->tail) == 0) { // Ta na tabela, ja foi inserido
-            remove_no(tabela, elem, destroi_par);
-            return 1;
-        }
-    }
-    // Se chegou aqui, nao encontrou na tabela. Insere um par novo, para indicar que essa aresta foi inserida.
-    p = malloc(sizeof(struct par));
-    p->head = malloc(sizeof(char) * TAM_NOME);
-    p->tail = malloc(sizeof(char) * TAM_NOME);
-    strcpy(p->head, n1);
-    strcpy(p->tail, n2);
-    insere_lista((void*)p,tabela);
-
-    return 0;
 }
 
 grafo le_grafo(FILE *input) {
