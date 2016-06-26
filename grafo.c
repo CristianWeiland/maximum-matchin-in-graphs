@@ -1169,7 +1169,6 @@ lista caminho_aumentante(grafo g) {
     vertice v;
     lista l;
 
-    l = constroi_lista();
 
     for(elem_v = primeiro_no(g->v); elem_v; elem_v = proximo_no(elem_v)) {
         v = (vertice) conteudo(elem_v);
@@ -1178,6 +1177,7 @@ lista caminho_aumentante(grafo g) {
 
     for(elem_v = primeiro_no(g->v); elem_v; elem_v = proximo_no(elem_v)) {
 
+        l = constroi_lista();
 
         for(elem_aux = primeiro_no(g->v); elem_aux; elem_aux = proximo_no(elem_aux)) {
             v = (vertice) conteudo(elem_aux);
@@ -1194,8 +1194,8 @@ lista caminho_aumentante(grafo g) {
                 }
             }
         }
+        destroi_lista(l, NULL);
     }
-    destroi_lista(l, NULL);
     return NULL;
 }
 
